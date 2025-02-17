@@ -1,1 +1,4 @@
 openai
+pandas
+xlsxwriter
+python-docx
