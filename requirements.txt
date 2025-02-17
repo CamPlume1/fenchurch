@@ -3,3 +3,4 @@ pandas
 xlsxwriter
 python-docx
 openpyxl
+requests

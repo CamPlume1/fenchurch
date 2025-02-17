@@ -1,8 +1,8 @@
 from io import BytesIO
-from openai import OpenAI
 import streamlit as st
 import pandas as pd
 from docx import Document
+from perplexity import PerplexityResponse, query_preplexity
 
 ## Env
 test_key = st.secrets["my_secrets"]["api_key"]
@@ -25,35 +25,31 @@ def primary_offerings(firm_name: str)-> str:
 def firm_size(firm_name: str) -> str:
     return f"What is the size of {firm_name}? Please provide a concise response in bullet point form. Don't give a greeting, salutation, or introduction. BULLET POINTS ONLY"
 
+def leadership(firm_name: str) -> str:
+    return f"Give me a brief, concise description of key people associated with the RIA {firm_name}. Focus especially on firm leadership."
+
 
 ## Open AI Setup ##
 
-def createClient(api_key) -> OpenAI:
-    return OpenAI(api_key=api_key, base_url="https://api.perplexity.ai")
-
-# Given a prompt, send to OpenAI and parse response
-def query_openai(prompt: str, client: OpenAI, model_spec: str) -> str:
-    completion = client.chat.completions.create(
-        model=model_spec,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return completion.choices[0].message.content
-
-client = createClient(test_key)
-
-def wrap(prompt: str) -> str:
-    return query_openai(prompt, client, "sonar-pro")
+def wrap(prompt: str) -> PerplexityResponse:
+    return query_preplexity(prompt, test_key)
 
 
 ## Download Processing ##
  # Generate DOCX and provide download button
-def generate_docx(data: dict, user_input: str) -> BytesIO:
+def generate_docx(data: dict[str, PerplexityResponse], user_input: str) -> BytesIO:
     doc = Document()
     doc.add_heading(f"RIA Report: {user_input}", level=1)
 
     for key, value in data.items():
         doc.add_heading(key.capitalize(), level=2)
-        doc.add_paragraph(value)
+        doc.add_paragraph(value.getText())
+        
+        # Create a new paragraph for citations
+        paragraph = doc.add_paragraph()
+        bold_run = paragraph.add_run("Citations: \n")  # Add "Citations" in bold
+        bold_run.bold = True
+        paragraph.add_run(value.getCitations())  # Append citations normally
 
     buffer = BytesIO()
     doc.save(buffer)
@@ -95,8 +91,8 @@ if st.button("Generate RIA report"):
 
     st.markdown(f"**Home office location:** {df.at[user_input, 'Main Office City']}, {df.at[user_input, 'Main Office Country']}")
     st.markdown(f"**Discretionary AUM:** ${df.at[user_input, "Discretionary AUM"]:,.0f}")
-    st.markdown(f"**Non-Discretionary AUM:** {df.at[user_input, "Non-Discretionary AUM"]:,.0f}")
-    st.markdown(f"**Total AUM:** {df.at[user_input, "Total AUM"]:,.0f}")
+    st.markdown(f"**Non-Discretionary AUM:** ${df.at[user_input, "Non-Discretionary AUM"]:,.0f}")
+    st.markdown(f"**Total AUM:** ${df.at[user_input, "Total AUM"]:,.0f}")
 
 
     # Add a section heading
@@ -108,22 +104,33 @@ if st.button("Generate RIA report"):
             # Firm Overview
             data_acc['overview'] = wrap(firm_description_general(user_input))
             st.markdown("#### Firm Overview: AI GENERATED")
-            st.text(f"{data_acc['overview']}")
+            st.text(f"{data_acc['overview'].getText()}")
+            st.markdown(f"**Citations:** \n{data_acc['overview'].getMarkdownCitations()}", unsafe_allow_html=True)
 
             # Brief History
             data_acc['history'] = wrap(brief_history(user_input))
             st.markdown("#### Firm History: AI GENERATED")
-            st.markdown(f"{data_acc['history']}")
+            st.text(f"{data_acc['history'].getText()}")
+            st.markdown(f"**Citations:** \n{data_acc['history'].getMarkdownCitations()}", unsafe_allow_html=True)
 
             # Primary Offerings
             data_acc['offerings'] = wrap(primary_offerings(user_input))
             st.markdown("#### Primary Offerings: AI GENERATED")
-            st.markdown(f"{data_acc['offerings']}")
+            st.text(f"{data_acc['offerings'].getText()}")
+            st.markdown(f"**Citations:** \n{data_acc['offerings'].getMarkdownCitations()}", unsafe_allow_html=True)
+
 
             # Firm Size
             data_acc['size'] = wrap(firm_size(user_input))
             st.markdown("#### Firm Size: AI GENERATED")
-            st.markdown(f"{data_acc['size']}")
+            st.text(f"{data_acc['size'].getText()}")
+            st.markdown(f"**Citations:** \n{data_acc['size'].getMarkdownCitations()}", unsafe_allow_html=True)
+
+            # Firm Leadership
+            data_acc['leadership'] = wrap(leadership(user_input))
+            st.markdown("#### Firm Leadership: AI GENERATED")
+            st.text(f"{data_acc['leadership'].getText()}")
+            st.markdown(f"**Citations:** \n{data_acc['leadership'].getMarkdownCitations()}", unsafe_allow_html=True)
 
             docx_buffer = generate_docx(data_acc, user_input)
 
@@ -135,7 +142,7 @@ if st.button("Generate RIA report"):
             )
 
             st.download_button(
-                label="Download Report as XLSX",
+                label="Download Report as XLSX: In Progress",
                 data=to_excel(data_acc),
                 file_name=f"{user_input}_RIA_Report.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
