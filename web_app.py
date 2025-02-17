@@ -4,9 +4,6 @@ import streamlit as st
 import pandas as pd
 from docx import Document
 
-# Set locale to the user's default setting (for example, en_US.UTF-8)
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-
 ## Env
 test_key = st.secrets["my_secrets"]["api_key"]
 
