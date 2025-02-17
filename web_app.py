@@ -9,7 +9,7 @@ test_key = st.secrets["my_secrets"]["api_key"]
 
 ## Data
 df = pd.read_excel("data_cleaned.xlsx", index_col=1)
-print(len(df.columns))
+df = df[~df.index.duplicated(keep='first')]
 options = list(df.index.values)
 
 ## Asset manager prompts ##
