@@ -4,6 +4,9 @@ import streamlit as st
 import pandas as pd
 from docx import Document
 
+# Set locale to the user's default setting (for example, en_US.UTF-8)
+locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+
 ## Env
 test_key = st.secrets["my_secrets"]["api_key"]
 
@@ -94,9 +97,9 @@ if st.button("Generate RIA report"):
     # data_acc['total_aum'] = df.at[user_input, "Total AUM"]
 
     st.markdown(f"**Home office location:** {df.at[user_input, 'Main Office City']}, {df.at[user_input, 'Main Office Country']}")
-    st.markdown(f"**Discretionary AUM:** {df.at[user_input, "Discretionary AUM"]}")
-    st.markdown(f"**Non-Discretionary AUM:** {df.at[user_input, "Non-Discretionary AUM"]}")
-    st.markdown(f"**Total AUM:** {df.at[user_input, "Total AUM"]}")
+    st.markdown(f"**Discretionary AUM:** ${df.at[user_input, "Discretionary AUM"]:,.0f}")
+    st.markdown(f"**Non-Discretionary AUM:** {df.at[user_input, "Non-Discretionary AUM"]:,.0f}")
+    st.markdown(f"**Total AUM:** {df.at[user_input, "Total AUM"]:,.0f}")
 
 
     # Add a section heading
