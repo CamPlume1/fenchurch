@@ -14,16 +14,16 @@ options = list(df.index.values)
 
 ## Asset manager prompts ##
 def firm_description_general(firm_name: str) -> str:
-    return f'Give me a 5-10 sentence firm overview of {firm_name}. Be concise, and use bullet points'
+    return f"Give me a 5-10 sentence firm overview of {firm_name}. Be concise, and use bullet points. Don't give a greeting, salutation, lead in, or introduction. BULLET POINTS ONLY"
 
 def brief_history(firm_name: str) -> str:
-    return f"Can you please provide a brief, concise history of the {firm_name} in bullet point form. Don't give a greeting"
+    return f"Provide a brief, concise history of the {firm_name} in bullet point form. Don't give a greeting, salutation, or introduction. BULLET POINTS ONLY"
 
 def primary_offerings(firm_name: str)-> str:
     return f"What are the primary offerings of {firm_name}? Please provide a concise response in bullet point form"
 
 def firm_size(firm_name: str) -> str:
-    return f"What is the size of {firm_name}? Please provide a concise response in bullet point form"
+    return f"What is the size of {firm_name}? Please provide a concise response in bullet point form. Don't give a greeting, salutation, or introduction. BULLET POINTS ONLY"
 
 
 ## Open AI Setup ##
@@ -88,6 +88,11 @@ if st.button("Generate RIA report"):
     # Add section for SEC data
     st.subheader("Reported SEC Data")
 
+    # data_acc['location'] = f"{df.at[user_input, 'Main Office City']}, {df.at[user_input, 'Main Office Country']}"
+    # data_acc['discretionary_aum'] = df.at[user_input, "Discretionary AUM"]
+    # data_acc['non-discretionary_aum'] = df.at[user_input, "Non-Discretionary AUM"]
+    # data_acc['total_aum'] = df.at[user_input, "Total AUM"]
+
     st.markdown(f"**Home office location:** {df.at[user_input, 'Main Office City']}, {df.at[user_input, 'Main Office Country']}")
     st.markdown(f"**Discretionary AUM:** {df.at[user_input, "Discretionary AUM"]}")
     st.markdown(f"**Non-Discretionary AUM:** {df.at[user_input, "Non-Discretionary AUM"]}")
@@ -102,19 +107,23 @@ if st.button("Generate RIA report"):
         if user_input:
             # Firm Overview
             data_acc['overview'] = wrap(firm_description_general(user_input))
-            st.text_area("Firm Overview: AI GENERATED", data_acc['overview'], height=300)
+            st.markdown("#### Firm Overview: AI GENERATED")
+            st.text(f"{data_acc['overview']}")
 
             # Brief History
             data_acc['history'] = wrap(brief_history(user_input))
-            st.text_area("History: AI GENERATED", data_acc['history'], height=300)
+            st.markdown("#### Firm History: AI GENERATED")
+            st.markdown(f"{data_acc['history']}")
 
             # Primary Offerings
             data_acc['offerings'] = wrap(primary_offerings(user_input))
-            st.text_area("Primary Offerings: AI GENERATED", data_acc['offerings'], height=300)
+            st.markdown("#### Primary Offerings: AI GENERATED")
+            st.markdown(f"{data_acc['offerings']}")
 
             # Firm Size
             data_acc['size'] = wrap(firm_size(user_input))
-            st.text_area("Firm Size: AI GENERATED", data_acc['size'], height=300)
+            st.markdown("#### Firm Size: AI GENERATED")
+            st.markdown(f"{data_acc['size']}")
 
             docx_buffer = generate_docx(data_acc, user_input)
 
