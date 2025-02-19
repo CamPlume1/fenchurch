@@ -8,7 +8,7 @@ from perplexity import PerplexityResponse, query_preplexity
 test_key = st.secrets["my_secrets"]["api_key"]
 
 ## Data
-df = pd.read_excel("data_cleaned.xlsx", index_col=1)
+df = pd.read_excel("data_cleaned_3.xlsx", index_col=1)
 df = df[~df.index.duplicated(keep='first')]
 options = list(df.index.values)
 
@@ -29,7 +29,7 @@ def leadership(firm_name: str) -> str:
     return f"Give me a brief, concise description of key people associated with the RIA {firm_name}. Focus especially on firm leadership."
 
 
-## Open AI Setup ##
+## AI Setup ##
 
 def wrap(prompt: str) -> PerplexityResponse:
     return query_preplexity(prompt, test_key)
@@ -37,12 +37,39 @@ def wrap(prompt: str) -> PerplexityResponse:
 
 ## Download Processing ##
  # Generate DOCX and provide download button
-def generate_docx(data: dict[str, PerplexityResponse], user_input: str) -> BytesIO:
+def generate_docx(data: dict[str, PerplexityResponse], sec: pd.DataFrame, user_input: str) -> BytesIO:
     doc = Document()
     doc.add_heading(f"RIA Report: {user_input}", level=1)
 
+    doc.add_heading("SEC Disclosed Data - as of 12/02/2024", level=2)
+    paragraph = doc.add_paragraph()
+
+    # Home office
+    state = f"{sec.at[user_input, 'Main Office State']}, " if pd.notna(sec.at[user_input, 'Main Office State']) else ""
+    if pd.notna(sec.at[user_input, 'Main Office Country']):
+        paragraph.add_run("Home Office: ").bold = True
+        paragraph.add_run(f"{sec.at[user_input, 'Main Office City']}, {state}{sec.at[user_input, 'Main Office Country']}\n")
+    else: paragraph.add_run("Home Office Not Disclosed, May Be Present in AI Research\n").bold = True
+
+    paragraph.add_run("Discretionary AUM: ").bold = True
+    paragraph.add_run(f"${sec.at[user_input, 'Discretionary AUM']}\n")
+
+    paragraph.add_run("Non-Discretionary AUM: ").bold = True
+    paragraph.add_run(f"${sec.at[user_input, 'Non-Discretionary AUM']}\n")
+
+    paragraph.add_run("Total AUM: ").bold = True
+    paragraph.add_run(f"${sec.at[user_input, 'Total AUM']}\n")
+
+    paragraph.add_run("FTEs: ").bold = True
+    paragraph.add_run(f"{sec.at[user_input, '#FTEs']}\n")
+
+    paragraph.add_run("Number of Investment Prof: ").bold = True
+    paragraph.add_run(f"{sec.at[user_input, '#Invest. Prof.']}\n")
+
+
+    doc.add_heading("AI Generated Firm Research", level=2)
     for key, value in data.items():
-        doc.add_heading(key.capitalize(), level=2)
+        doc.add_heading(key.capitalize(), level=3)
         doc.add_paragraph(value.getText())
         
         # Create a new paragraph for citations
@@ -82,21 +109,25 @@ data_acc = {}
 if st.button("Generate RIA report"):
 
     # Add section for SEC data
-    st.subheader("Reported SEC Data")
+    st.header("Reported SEC Data - as of 12/02/2024")
 
-    # data_acc['location'] = f"{df.at[user_input, 'Main Office City']}, {df.at[user_input, 'Main Office Country']}"
-    # data_acc['discretionary_aum'] = df.at[user_input, "Discretionary AUM"]
-    # data_acc['non-discretionary_aum'] = df.at[user_input, "Non-Discretionary AUM"]
-    # data_acc['total_aum'] = df.at[user_input, "Total AUM"]
+    state = f"{df.at[user_input, 'Main Office State']}, " if pd.notna(df.at[user_input, 'Main Office State']) else ""
 
-    st.markdown(f"**Home office location:** {df.at[user_input, 'Main Office City']}, {df.at[user_input, 'Main Office Country']}")
+    if pd.notna(df.at[user_input, 'Main Office Country']):
+        st.markdown(f"**Home office location:** {df.at[user_input, 'Main Office City']}, {state}{df.at[user_input, 'Main Office Country']}")
+    else:
+        st.markdown("**Home Office Location not reported, may be present in AI generated research**")
+    st.markdown("#### AUM")
     st.markdown(f"**Discretionary AUM:** ${df.at[user_input, "Discretionary AUM"]:,.0f}")
     st.markdown(f"**Non-Discretionary AUM:** ${df.at[user_input, "Non-Discretionary AUM"]:,.0f}")
     st.markdown(f"**Total AUM:** ${df.at[user_input, "Total AUM"]:,.0f}")
+    st.markdown("#### Staffing")
+    st.markdown(f"**FTE's:** {df.at[user_input, "#FTEs"]}")
+    st.markdown(f"**Number of Investment Prof.:** {df.at[user_input, "#Invest. Prof."]}")
 
 
     # Add a section heading
-    st.subheader("Firm Research: AI Generated")
+    st.header("Firm Research: AI Generated")
 
     # Validate password
     if password == st.secrets['my_secrets']['password']:
@@ -132,7 +163,7 @@ if st.button("Generate RIA report"):
             st.text(f"{data_acc['leadership'].getText()}")
             st.markdown(f"**Citations:** \n{data_acc['leadership'].getMarkdownCitations()}", unsafe_allow_html=True)
 
-            docx_buffer = generate_docx(data_acc, user_input)
+            docx_buffer = generate_docx(data_acc, df, user_input)
 
             st.download_button(
                 label="Download Report as DOCX",

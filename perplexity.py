@@ -6,7 +6,6 @@ class PerplexityResponse:
 
     def __init__(self, response: requests.Response):
         response = response.json()
-        print(response)
         self.text = response['choices'][0]['message']['content']
         self.citations = response['citations']
 
